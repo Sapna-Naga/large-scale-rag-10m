@@ -35,6 +35,8 @@ def main():
     ev.add_argument('--k', type=int, default=10)
     ev.add_argument('--candidates', type=int, default=100)
     ev.add_argument('--ef', type=int, default=128)
+    ev.add_argument('--limit', type=int, help='Evaluate only the first N eligible queries (development only)')
+    ev.add_argument('--warmup-query', help='Separate real query for model and retrieval warm-up')
     sub.add_parser('count')
     a = p.parse_args()
     if getattr(a,'limit',None) is not None and a.limit<1:
@@ -57,7 +59,8 @@ def main():
         result = engine.answer(a.query or input('Question: '),a.k)
     elif a.command=='evaluate':
         from .evaluate import evaluate
-        result = evaluate(engine,a.queries,a.qrels,a.output,a.k,a.mode,a.rerank,a.candidates,a.ef)
+        result = evaluate(engine,a.queries,a.qrels,a.output,a.k,a.mode,a.rerank,a.candidates,a.ef,
+                          limit=a.limit, warmup_query=a.warmup_query)
     else:
         result = {'indexed_chunks':engine.db.count(engine.cfg.collection,exact=True).count}
     print(json.dumps(result, indent=2, ensure_ascii=False))
