@@ -1,0 +1,585 @@
+{
+  "mode": "hybrid",
+  "rerank": true,
+  "k": 10,
+  "candidates": 50,
+  "ef": 128,
+  "queries": 20,
+  "eligible_queries": 809,
+  "queries_without_positive_labels": 0,
+  "query_selection": "first eligible queries in file order",
+  "queries_file": "data/scifact/queries.jsonl",
+  "qrels_file": "data/scifact/qrels/train.tsv",
+  "queries_sha256": "830ccf116893a2708db9c3bc6857ea10dd34c81bef7bc88c369fcc33b37b81b3",
+  "qrels_sha256": "a53f2114831916c096b6c37d9e54da68cef4efdcdbd5ed46533601af972acf1d",
+  "collection": "rag_documents_v1",
+  "embedding": "BAAI/bge-small-en-v1.5",
+  "embedding_revision": null,
+  "reranker": "BAAI/bge-reranker-base",
+  "device": "cpu",
+  "indexed_chunks": 8993,
+  "warmup_seconds": 32.76150390000112,
+  "warmup_source": "explicit query",
+  "warmup_query": "A T helper 2 cell (Th2) environment impedes disease development in patients with systemic lupus erythematosus (SLE).",
+  "warmup_matches_evaluated_query": false,
+  "metrics": {
+    "recall": 0.65,
+    "precision": 0.065,
+    "mrr": 0.5555555555555556,
+    "ndcg": 0.5781444751403448,
+    "hit_rate": 0.65
+  },
+  "mean_returned_pool_recall": 0.95,
+  "queries_with_fewer_than_k_unique_documents": 0,
+  "latency_seconds": {
+    "p50": 17.22057869999844,
+    "p95": 20.85515039999882,
+    "p99": 20.941187399999762
+  },
+  "serial_queries_per_second": 0.05707496080210219,
+  "latency_scope": "Engine.search including query encoding, database calls and optional reranking; warm-up excluded",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "python": "3.11.5",
+  "per_query": [
+    {
+      "query_id": "0",
+      "latency_seconds": 16.062788499999442,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 46,
+      "top_k_document_ids": [
+        "4346436",
+        "6550579",
+        "14082855",
+        "21456232",
+        "7583104",
+        "825728",
+        "14103509",
+        "26071782",
+        "34386619",
+        "13231899"
+      ],
+      "first_relevant_rank_in_pool": 28,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 0.0,
+        "precision": 0.0,
+        "mrr": 0,
+        "ndcg": 0.0,
+        "hit_rate": 0
+      }
+    },
+    {
+      "query_id": "2",
+      "latency_seconds": 16.991235999998025,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 40,
+      "top_k_document_ids": [
+        "13734012",
+        "4828631",
+        "841371",
+        "19945096",
+        "76415938",
+        "6421734",
+        "13770184",
+        "29955650",
+        "18617259",
+        "6710713"
+      ],
+      "first_relevant_rank_in_pool": 1,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "4",
+      "latency_seconds": 16.209082400000625,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 38,
+      "top_k_document_ids": [
+        "23639838",
+        "18062308",
+        "24980622",
+        "1387104",
+        "9831859",
+        "10958594",
+        "39903312",
+        "25121903",
+        "24575065",
+        "52188256"
+      ],
+      "first_relevant_rank_in_pool": 11,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 0.0,
+        "precision": 0.0,
+        "mrr": 0,
+        "ndcg": 0.0,
+        "hit_rate": 0
+      }
+    },
+    {
+      "query_id": "6",
+      "latency_seconds": 15.319856099999015,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 38,
+      "top_k_document_ids": [
+        "2613775",
+        "20240998",
+        "35521287",
+        "23117378",
+        "4791384",
+        "30292811",
+        "16204011",
+        "9167230",
+        "21050357",
+        "1263446"
+      ],
+      "first_relevant_rank_in_pool": 1,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "9",
+      "latency_seconds": 14.86522419999892,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 43,
+      "top_k_document_ids": [
+        "44265107",
+        "3471191",
+        "8190282",
+        "24916604",
+        "25182647",
+        "21616324",
+        "11254040",
+        "39300105",
+        "7034001",
+        "24575065"
+      ],
+      "first_relevant_rank_in_pool": 1,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "10",
+      "latency_seconds": 17.46408429999792,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 44,
+      "top_k_document_ids": [
+        "32587939",
+        "13958154",
+        "42873134",
+        "4911006",
+        "25510546",
+        "9752604",
+        "600437",
+        "20904154",
+        "13780287",
+        "11903247"
+      ],
+      "first_relevant_rank_in_pool": 1,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "11",
+      "latency_seconds": 18.176756799999566,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 42,
+      "top_k_document_ids": [
+        "32587939",
+        "42873134",
+        "25510546",
+        "13958154",
+        "4911006",
+        "9752604",
+        "600437",
+        "13780287",
+        "11903247",
+        "20904154"
+      ],
+      "first_relevant_rank_in_pool": 1,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "12",
+      "latency_seconds": 18.00498620000144,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 36,
+      "top_k_document_ids": [
+        "33409100",
+        "27545868",
+        "27665523",
+        "21636085",
+        "19804204",
+        "43557480",
+        "40790033",
+        "26025820",
+        "8446259",
+        "35724562"
+      ],
+      "first_relevant_rank_in_pool": 1,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "14",
+      "latency_seconds": 16.994265000001178,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 42,
+      "top_k_document_ids": [
+        "1373287",
+        "393001",
+        "38401028",
+        "6421792",
+        "13466622",
+        "27449472",
+        "24101431",
+        "6415816",
+        "13069283",
+        "24341590"
+      ],
+      "first_relevant_rank_in_pool": 19,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 0.0,
+        "precision": 0.0,
+        "mrr": 0,
+        "ndcg": 0.0,
+        "hit_rate": 0
+      }
+    },
+    {
+      "query_id": "15",
+      "latency_seconds": 18.18271530000129,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 44,
+      "top_k_document_ids": [
+        "6280907",
+        "16853734",
+        "3848469",
+        "39426225",
+        "25516011",
+        "10078024",
+        "18953920",
+        "40164383",
+        "31293581",
+        "15335331"
+      ],
+      "first_relevant_rank_in_pool": 32,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 0.0,
+        "precision": 0.0,
+        "mrr": 0,
+        "ndcg": 0.0,
+        "hit_rate": 0
+      }
+    },
+    {
+      "query_id": "17",
+      "latency_seconds": 15.041393899999093,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 35,
+      "top_k_document_ids": [
+        "35714909",
+        "5487448",
+        "28633594",
+        "1263446",
+        "22815457",
+        "22007333",
+        "17450673",
+        "33257464",
+        "4791384",
+        "8529693"
+      ],
+      "first_relevant_rank_in_pool": null,
+      "returned_pool_recall": 0.0,
+      "metrics": {
+        "recall": 0.0,
+        "precision": 0.0,
+        "mrr": 0,
+        "ndcg": 0.0,
+        "hit_rate": 0
+      }
+    },
+    {
+      "query_id": "18",
+      "latency_seconds": 15.36051579999912,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 39,
+      "top_k_document_ids": [
+        "52188256",
+        "18062308",
+        "25121903",
+        "24980622",
+        "1387104",
+        "39903312",
+        "2492146",
+        "24575065",
+        "43334921",
+        "10958594"
+      ],
+      "first_relevant_rank_in_pool": 12,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 0.0,
+        "precision": 0.0,
+        "mrr": 0,
+        "ndcg": 0.0,
+        "hit_rate": 0
+      }
+    },
+    {
+      "query_id": "19",
+      "latency_seconds": 17.21222300000227,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 45,
+      "top_k_document_ids": [
+        "13072113",
+        "3202143",
+        "86602746",
+        "18949516",
+        "17209919",
+        "14864285",
+        "7042304",
+        "16267205",
+        "9091863",
+        "11414664"
+      ],
+      "first_relevant_rank_in_pool": 2,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 0.5,
+        "ndcg": 0.6309297535714575,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "20",
+      "latency_seconds": 19.729184000003443,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 45,
+      "top_k_document_ids": [
+        "13072113",
+        "3202143",
+        "86602746",
+        "7042304",
+        "14864285",
+        "18949516",
+        "17209919",
+        "18374364",
+        "9091863",
+        "11414664"
+      ],
+      "first_relevant_rank_in_pool": 2,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 0.5,
+        "ndcg": 0.6309297535714575,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "21",
+      "latency_seconds": 20.85515039999882,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 43,
+      "top_k_document_ids": [
+        "41493639",
+        "24575065",
+        "23862975",
+        "12991445",
+        "5596332",
+        "3690068",
+        "45341480",
+        "3692112",
+        "19464037",
+        "13843341"
+      ],
+      "first_relevant_rank_in_pool": 1,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "22",
+      "latency_seconds": 20.941187399999762,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 35,
+      "top_k_document_ids": [
+        "6490571",
+        "73473433",
+        "14682243",
+        "24318630",
+        "21274919",
+        "1102268",
+        "57762078",
+        "16204011",
+        "35022568",
+        "25451374"
+      ],
+      "first_relevant_rank_in_pool": 1,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "24",
+      "latency_seconds": 17.919052599998395,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 35,
+      "top_k_document_ids": [
+        "3471191",
+        "8963413",
+        "1900152",
+        "4468861",
+        "7975937",
+        "15128866",
+        "1454773",
+        "8994465",
+        "35301079",
+        "52180874"
+      ],
+      "first_relevant_rank_in_pool": 1,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "25",
+      "latency_seconds": 17.22057869999844,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 35,
+      "top_k_document_ids": [
+        "2613775",
+        "20240998",
+        "35521287",
+        "23117378",
+        "16204011",
+        "30292811",
+        "4791384",
+        "9167230",
+        "21050357",
+        "4824840"
+      ],
+      "first_relevant_rank_in_pool": 1,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 1.0,
+        "ndcg": 1.0,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "26",
+      "latency_seconds": 20.30816799999957,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 40,
+      "top_k_document_ids": [
+        "14626540",
+        "24735908",
+        "38410121",
+        "25938221",
+        "35766603",
+        "17925632",
+        "3471191",
+        "3654468",
+        "32390525",
+        "79696454"
+      ],
+      "first_relevant_rank_in_pool": 9,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 1.0,
+        "precision": 0.1,
+        "mrr": 0.1111111111111111,
+        "ndcg": 0.3010299956639812,
+        "hit_rate": 1
+      }
+    },
+    {
+      "query_id": "27",
+      "latency_seconds": 17.55791119999776,
+      "returned_chunks": 50,
+      "unique_documents_in_pool": 37,
+      "top_k_document_ids": [
+        "24735908",
+        "21636085",
+        "7613033",
+        "3654468",
+        "38410121",
+        "25938221",
+        "35301079",
+        "17925632",
+        "35766603",
+        "3471191"
+      ],
+      "first_relevant_rank_in_pool": 16,
+      "returned_pool_recall": 1.0,
+      "metrics": {
+        "recall": 0.0,
+        "precision": 0.0,
+        "mrr": 0,
+        "ndcg": 0.0,
+        "hit_rate": 0
+      }
+    }
+  ]
+}
