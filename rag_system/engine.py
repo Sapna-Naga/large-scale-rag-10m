@@ -82,14 +82,23 @@ class Engine:
         result = self.db.query_points(self.cfg.collection, query=m.SparseVector(indices=vector.indices.tolist(), values=vector.values.tolist()), using='bm25', limit=candidates, with_payload=True)
         return [dict(p.payload, point_id=str(p.id), score=p.score) for p in result.points]
 
+    @staticmethod
+    def _rerank_text(hit, rerank_input):
+        """Add the stored title only for the title-aware experiment."""
+        text = hit["text"]
+        title = (hit.get("title") or "").strip()
+        if rerank_input == "title_chunk" and title:
+            return title + "\n\n" + text
+        return text
+
     def search(self, query, k=10, mode='hybrid', candidates=50, rerank=False, ef=128, *, parallel=False,
-               fusion='chunk', rrf_constant=60, dense_weight=1.0, rerank_depth=None):
+               fusion='chunk', rrf_constant=60, dense_weight=1.0, rerank_depth=None, rerank_input="chunk"):
         if not query.strip() or not 1 <= k <= candidates <= 1000:
             raise ValueError('Require nonempty query and 1 <= k <= candidates <= 1000')
         if mode not in ('dense','exact','bm25','hybrid'):
             raise ValueError('Unknown retrieval mode')
         validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight,
-                        rerank_depth=rerank_depth, candidates=candidates)
+                        rerank_depth=rerank_depth, candidates=candidates, rerank_input=rerank_input)
         if parallel and mode != 'hybrid':
             raise ValueError('Parallel retrieval requires hybrid mode')
         if parallel:
@@ -120,7 +129,7 @@ class Engine:
             # Score only the prefix; keep the original order of the remaining
             # items. Cross-encoder scores and retrieval scores are not comparable.
             scores = [float(s) for s in self.reranker.predict(
-                [(query, h['text']) for h in prefix], show_progress_bar=False)]
+                [(query, self._rerank_text(h, rerank_input)) for h in prefix], show_progress_bar=False)]
             if len(scores) != len(prefix) or not all(math.isfinite(s) for s in scores):
                 raise ValueError('Reranker returned invalid scores')
             if rerank_depth is None:

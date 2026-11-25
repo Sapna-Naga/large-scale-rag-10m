@@ -57,7 +57,7 @@ def chunks(text, tokenizer, size=256, overlap=32):
 
 
 def validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight, *,
-                    rerank_depth=None, candidates=None):
+                    rerank_depth=None, candidates=None, rerank_input="chunk"):
     """Keep experimental fusion settings explicit and valid."""
     if fusion not in ('chunk', 'document'):
         raise ValueError('Fusion must be chunk or document')
@@ -67,6 +67,10 @@ def validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight, *,
         raise ValueError('Dense weight must be finite and positive')
     if mode != 'hybrid' and (fusion != 'chunk' or rrf_constant != 60 or dense_weight != 1):
         raise ValueError('Custom fusion settings require hybrid mode')
+    if rerank_input not in ("chunk", "title_chunk"):
+        raise ValueError("Reranker input must be chunk or title_chunk")
+    if rerank_input != "chunk" and not rerank:
+        raise ValueError("Title-aware input requires reranking")
     if rerank_depth is not None:
         if not rerank:
             raise ValueError('Rerank depth requires reranking')

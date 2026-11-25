@@ -59,13 +59,13 @@ def load_cases(queries, qrels):
 
 def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
              candidates=100, ef=128, limit=None, warmup_query=None, *, parallel=False,
-             fusion='chunk', rrf_constant=60, dense_weight=1.0, rerank_depth=None):
+             fusion='chunk', rrf_constant=60, dense_weight=1.0, rerank_depth=None, rerank_input="chunk"):
     if not 1 <= k <= candidates <= 1000 or ef < 1:
         raise ValueError('Require 1 <= k <= candidates <= 1000 and ef >= 1')
     if limit is not None and limit < 1:
         raise ValueError('Evaluation limit must be positive')
     validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight,
-                    rerank_depth=rerank_depth, candidates=candidates)
+                    rerank_depth=rerank_depth, candidates=candidates, rerank_input=rerank_input)
     if parallel and mode != 'hybrid':
         raise ValueError('Parallel retrieval requires hybrid mode')
     cases, no_positive = load_cases(queries, qrels)
@@ -81,6 +81,8 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
                    fusion=fusion, rrf_constant=rrf_constant, dense_weight=dense_weight)
     if rerank_depth is not None:
         options['rerank_depth'] = rerank_depth
+    if rerank_input != 'chunk':
+        options['rerank_input'] = rerank_input
     effective_depth = (rerank_depth if rerank_depth is not None else candidates) if rerank else 0
     # A separate, real training query can be supplied for held-out evaluation.
     warmup = cases[0][1] if warmup_query is None else warmup_query
@@ -133,7 +135,9 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
         'sparse_weight': 1.0 if mode == 'hybrid' else None,
         'rerank_depth': effective_depth if rerank else None,
         'rerank_unit': ('unique documents' if fusion == 'document' else 'chunks') if rerank else None,
-        'reranker_input': 'representative chunk text' if rerank and fusion == 'document' else ('chunk text' if rerank else None),
+        'reranker_input': (('title + ' if rerank_input == 'title_chunk' else '') +
+                           ('representative chunk text' if fusion == 'document' else 'chunk text')) if rerank else None,
+        'rerank_input_mode': rerank_input if rerank else None,
         'mean_rerank_prefix_recall': statistics.mean(d['rerank_prefix_recall'] for d in details) if rerank else None,
         'mean_reranked_items': statistics.mean(d['reranked_items'] for d in details),
         'candidate_unit': 'chunks per retrieval branch',

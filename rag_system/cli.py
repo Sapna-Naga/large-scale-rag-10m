@@ -10,6 +10,8 @@ def add_fusion_options(parser):
     """Expose optional fusion experiments without changing existing defaults."""
     parser.add_argument("--rerank-depth", type=int,
                         help="Rerank only this many initial items; requires --rerank")
+    parser.add_argument("--rerank-input", choices=["chunk", "title_chunk"], default="chunk",
+                        help="Use chunk text or stored title plus chunk text; requires --rerank for title_chunk")
     parser.add_argument("--fusion", choices=["chunk", "document"], default="chunk")
     parser.add_argument("--rrf-constant", type=int, default=60)
     parser.add_argument("--dense-weight", type=float, default=1.0,
@@ -61,7 +63,7 @@ def main():
     if a.command in ('search', 'evaluate'):
         try:
             validate_fusion(a.mode, a.rerank, a.fusion, a.rrf_constant, a.dense_weight,
-                            rerank_depth=a.rerank_depth, candidates=a.candidates)
+                            rerank_depth=a.rerank_depth, candidates=a.candidates, rerank_input=a.rerank_input)
         except ValueError as exc:
             p.error(str(exc))
     engine = Engine()
@@ -79,7 +81,7 @@ def main():
     elif a.command=='search':
         result = engine.search(a.query or input('Query: '),a.k,a.mode,a.candidates,a.rerank,a.ef,parallel=a.parallel,
                                fusion=a.fusion, rrf_constant=a.rrf_constant, dense_weight=a.dense_weight,
-                               rerank_depth=a.rerank_depth)
+                               rerank_depth=a.rerank_depth, rerank_input=a.rerank_input)
     elif a.command=='ask':
         result = engine.answer(a.query or input('Question: '),a.k)
     elif a.command=='evaluate':
@@ -87,7 +89,7 @@ def main():
         result = evaluate(engine,a.queries,a.qrels,a.output,a.k,a.mode,a.rerank,a.candidates,a.ef,
                           limit=a.limit, warmup_query=a.warmup_query, parallel=a.parallel,
                                fusion=a.fusion, rrf_constant=a.rrf_constant, dense_weight=a.dense_weight,
-                               rerank_depth=a.rerank_depth)
+                               rerank_depth=a.rerank_depth, rerank_input=a.rerank_input)
     else:
         result = {'indexed_chunks':engine.db.count(engine.cfg.collection,exact=True).count}
     print(json.dumps(result, indent=2, ensure_ascii=False))
