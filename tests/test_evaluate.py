@@ -16,7 +16,8 @@ def inputs(tmp_path):
 
 class FakeEngine:
     cfg = SimpleNamespace(collection='unit-test', embedding='fixture', revision=None,
-                          reranker='fixture', device='cpu')
+                          reranker='fixture', device='cpu', url='http://127.0.0.1:6333',
+                          chunk_size=256, overlap=32)
     db = SimpleNamespace(count=lambda *args, **kwargs: SimpleNamespace(count=3))
 
     def __init__(self):
@@ -42,6 +43,8 @@ def test_evaluation_warmup_and_document_metrics(tmp_path):
     assert report['per_query'][0]['top_k_document_ids'] == ['z', 'a']
     assert report['per_query'][0]['first_relevant_rank_in_pool'] == 2
     assert report['per_query'][0]['returned_chunks'] == 3
+    assert report['per_query'][0]['returned_pool_document_ids'] == ['z', 'a']
+    assert report['qdrant_endpoint'] == 'http://127.0.0.1:6333'
     assert 'per_query' not in summary
 
 

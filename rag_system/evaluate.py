@@ -7,6 +7,7 @@ import platform
 import statistics
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 from .core import records, metrics, unique_documents
 
 
@@ -94,6 +95,7 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
             'query_id': qid, 'latency_seconds': elapsed,
             'returned_chunks': len(hits), 'unique_documents_in_pool': len(ranking),
             'top_k_document_ids': ranking[:k],
+            'returned_pool_document_ids': ranking,
             'first_relevant_rank_in_pool': next((i for i, doc in enumerate(ranking, 1) if doc in relevant), None),
             'returned_pool_recall': len(relevant.intersection(ranking)) / len(relevant),
             'metrics': result,
@@ -104,6 +106,12 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
     if points_after != points_before:
         raise RuntimeError('Collection point count changed during evaluation; rerun on a fixed collection')
     ordered = sorted(times)
+    # Record the endpoint without credentials, query parameters or fragments.
+    endpoint = urlsplit(cfg.url)
+    host = endpoint.hostname or ''
+    if ':' in host:
+        host = f'[{host}]'
+    safe_endpoint = f'{endpoint.scheme}://{host}' + (f':{endpoint.port}' if endpoint.port else '')
     report = {
         'mode': mode, 'rerank': rerank, 'k': k, 'candidates': candidates, 'ef': ef,
         'queries': len(results), 'eligible_queries': total_cases,
@@ -111,6 +119,8 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
         'query_selection': 'first eligible queries in file order' if limit is not None else 'all eligible queries',
         'queries_file': str(queries), 'qrels_file': str(qrels),
         'queries_sha256': file_hash(queries), 'qrels_sha256': file_hash(qrels),
+        'qdrant_endpoint': safe_endpoint,
+        'chunk_size': cfg.chunk_size, 'chunk_overlap': cfg.overlap,
         'collection': cfg.collection, 'embedding': cfg.embedding,
         'embedding_revision': cfg.revision, 'reranker': cfg.reranker if rerank else None,
         'device': cfg.device, 'indexed_chunks': points_after,

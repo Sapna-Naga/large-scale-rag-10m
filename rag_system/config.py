@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Config:
-    url: str = os.getenv('QDRANT_URL', 'http://localhost:6333')
+    url: str = os.getenv('QDRANT_URL', 'http://127.0.0.1:6333')
     collection: str = os.getenv('RAG_COLLECTION', 'rag_documents_v1')
     embedding: str = os.getenv('RAG_EMBEDDING', 'BAAI/bge-small-en-v1.5')
     revision: str | None = os.getenv('RAG_EMBEDDING_REVISION')
