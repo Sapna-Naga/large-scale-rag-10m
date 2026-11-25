@@ -24,6 +24,7 @@ def main():
         if name=='search':
             q.add_argument('--mode', choices=['dense','exact','bm25','hybrid'], default='hybrid')
             q.add_argument('--rerank', action='store_true')
+            q.add_argument('--parallel', action='store_true', help='Run both hybrid retrieval branches concurrently')
             q.add_argument('--candidates', type=int, default=50)
             q.add_argument('--ef', type=int, default=128)
     ev = sub.add_parser('evaluate')
@@ -32,6 +33,7 @@ def main():
     ev.add_argument('--output', required=True)
     ev.add_argument('--mode', choices=['dense','exact','bm25','hybrid'], default='hybrid')
     ev.add_argument('--rerank', action='store_true')
+    ev.add_argument('--parallel', action='store_true', help='Run both hybrid retrieval branches concurrently')
     ev.add_argument('--k', type=int, default=10)
     ev.add_argument('--candidates', type=int, default=100)
     ev.add_argument('--ef', type=int, default=128)
@@ -41,6 +43,8 @@ def main():
     a = p.parse_args()
     if getattr(a,'limit',None) is not None and a.limit<1:
         p.error('--limit must be positive')
+    if getattr(a, 'parallel', False) and a.mode != 'hybrid':
+        p.error('--parallel requires --mode hybrid')
     engine = Engine()
     start = time.perf_counter()
     if a.command=='init':
@@ -54,13 +58,13 @@ def main():
         delete_document(engine,a.state,a.id)
         result = {'deleted':a.id}
     elif a.command=='search':
-        result = engine.search(a.query or input('Query: '),a.k,a.mode,a.candidates,a.rerank,a.ef)
+        result = engine.search(a.query or input('Query: '),a.k,a.mode,a.candidates,a.rerank,a.ef,parallel=a.parallel)
     elif a.command=='ask':
         result = engine.answer(a.query or input('Question: '),a.k)
     elif a.command=='evaluate':
         from .evaluate import evaluate
         result = evaluate(engine,a.queries,a.qrels,a.output,a.k,a.mode,a.rerank,a.candidates,a.ef,
-                          limit=a.limit, warmup_query=a.warmup_query)
+                          limit=a.limit, warmup_query=a.warmup_query, parallel=a.parallel)
     else:
         result = {'indexed_chunks':engine.db.count(engine.cfg.collection,exact=True).count}
     print(json.dumps(result, indent=2, ensure_ascii=False))

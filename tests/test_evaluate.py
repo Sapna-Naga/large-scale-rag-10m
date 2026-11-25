@@ -72,3 +72,16 @@ def test_collection_count_change_fails(tmp_path):
     with pytest.raises(RuntimeError, match='point count changed'):
         evaluate(engine, queries, qrels, tmp_path/'report.json', limit=1)
     assert not (tmp_path/'report.json').exists()
+
+
+def test_parallel_options_and_metadata(tmp_path):
+    queries, qrels = inputs(tmp_path)
+    engine = FakeEngine()
+    output = tmp_path / 'parallel.json'
+    summary = evaluate(engine, queries, qrels, output, candidates=10, limit=1,
+                       warmup_query='separate warm-up', parallel=True)
+    assert summary['parallel'] is True
+    assert all(options['parallel'] is True for _, options in engine.calls)
+    assert json.loads(output.read_text(encoding='utf-8'))['parallel'] is True
+    with pytest.raises(ValueError, match='requires hybrid'):
+        evaluate(engine, queries, qrels, output, mode='dense', parallel=True)

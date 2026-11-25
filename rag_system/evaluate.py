@@ -58,11 +58,13 @@ def load_cases(queries, qrels):
 
 
 def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
-             candidates=100, ef=128, limit=None, warmup_query=None):
+             candidates=100, ef=128, limit=None, warmup_query=None, *, parallel=False):
     if not 1 <= k <= candidates <= 1000 or ef < 1:
         raise ValueError('Require 1 <= k <= candidates <= 1000 and ef >= 1')
     if limit is not None and limit < 1:
         raise ValueError('Evaluation limit must be positive')
+    if parallel and mode != 'hybrid':
+        raise ValueError('Parallel retrieval requires hybrid mode')
     cases, no_positive = load_cases(queries, qrels)
     total_cases = len(cases)
     if limit is not None:
@@ -72,7 +74,7 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
     if points_before == 0:
         raise ValueError('Cannot evaluate an empty collection')
     # Use the same retrieval options for warm-up and every measured query.
-    options = dict(k=candidates, candidates=candidates, mode=mode, rerank=rerank, ef=ef)
+    options = dict(k=candidates, candidates=candidates, mode=mode, rerank=rerank, ef=ef, parallel=parallel)
     # A separate, real training query can be supplied for held-out evaluation.
     warmup = cases[0][1] if warmup_query is None else warmup_query
     if not isinstance(warmup, str) or not warmup.strip():
@@ -113,7 +115,7 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
         host = f'[{host}]'
     safe_endpoint = f'{endpoint.scheme}://{host}' + (f':{endpoint.port}' if endpoint.port else '')
     report = {
-        'mode': mode, 'rerank': rerank, 'k': k, 'candidates': candidates, 'ef': ef,
+        'mode': mode, 'parallel': parallel, 'rerank': rerank, 'k': k, 'candidates': candidates, 'ef': ef,
         'queries': len(results), 'eligible_queries': total_cases,
         'queries_without_positive_labels': no_positive,
         'query_selection': 'first eligible queries in file order' if limit is not None else 'all eligible queries',

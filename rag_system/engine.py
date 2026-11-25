@@ -1,6 +1,7 @@
 """Qdrant-backed dense and sparse retrieval, reranking and cited generation."""
 import json
 import os
+from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from .config import Config
 from .core import chunks, point_id, rrf
@@ -66,22 +67,44 @@ class Engine:
                   for row,d,s in zip(rows,dense,sparse,strict=True)]
         self.db.upsert(self.cfg.collection, points, wait=True, ordering=self.m.WriteOrdering.STRONG)
 
-    def search(self, query, k=10, mode='hybrid', candidates=50, rerank=False, ef=128):
+    def _dense_search(self, query, candidates, ef, exact=False):
+        # Use the same query instruction and search settings as the baseline.
+        m = self.m
+        vector = self.dense.encode('Represent this sentence for searching relevant passages: '+query, normalize_embeddings=True).tolist()
+        result = self.db.query_points(self.cfg.collection, query=vector, using='dense', limit=candidates,
+                     search_params=m.SearchParams(exact=exact, hnsw_ef=ef, quantization=m.QuantizationSearchParams(ignore=exact)), with_payload=True)
+        return [dict(p.payload, point_id=str(p.id), score=p.score) for p in result.points]
+
+    def _sparse_search(self, query, candidates):
+        m = self.m
+        vector = next(iter(self.sparse.query_embed(query)))
+        result = self.db.query_points(self.cfg.collection, query=m.SparseVector(indices=vector.indices.tolist(), values=vector.values.tolist()), using='bm25', limit=candidates, with_payload=True)
+        return [dict(p.payload, point_id=str(p.id), score=p.score) for p in result.points]
+
+    def search(self, query, k=10, mode='hybrid', candidates=50, rerank=False, ef=128, *, parallel=False):
         if not query.strip() or not 1 <= k <= candidates <= 1000:
             raise ValueError('Require nonempty query and 1 <= k <= candidates <= 1000')
         if mode not in ('dense','exact','bm25','hybrid'):
             raise ValueError('Unknown retrieval mode')
-        m = self.m
-        rankings = []
-        if mode in ('dense','exact','hybrid'):
-            vector = self.dense.encode('Represent this sentence for searching relevant passages: '+query, normalize_embeddings=True).tolist()
-            result = self.db.query_points(self.cfg.collection, query=vector, using='dense', limit=candidates,
-                         search_params=m.SearchParams(exact=mode=='exact', hnsw_ef=ef, quantization=m.QuantizationSearchParams(ignore=mode=='exact')), with_payload=True)
-            rankings.append([dict(p.payload, point_id=str(p.id), score=p.score) for p in result.points])
-        if mode in ('bm25','hybrid'):
-            vector = next(iter(self.sparse.query_embed(query)))
-            result = self.db.query_points(self.cfg.collection, query=m.SparseVector(indices=vector.indices.tolist(), values=vector.values.tolist()), using='bm25', limit=candidates, with_payload=True)
-            rankings.append([dict(p.payload, point_id=str(p.id), score=p.score) for p in result.points])
+        if parallel and mode != 'hybrid':
+            raise ValueError('Parallel retrieval requires hybrid mode')
+        if parallel:
+            # Initialize each model before starting workers. Each worker uses
+            # a different model, and the existing API serializes user requests.
+            _ = self.dense, self.sparse
+            # Only two tasks are submitted. Wait for both before fusion.
+            # The context manager also shuts down workers if a branch fails.
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                dense_future = pool.submit(self._dense_search, query, candidates, ef)
+                sparse_future = pool.submit(self._sparse_search, query, candidates)
+                # Keep dense first, regardless of which worker finishes first.
+                rankings = [dense_future.result(), sparse_future.result()]
+        else:
+            rankings = []
+            if mode in ('dense','exact','hybrid'):
+                rankings.append(self._dense_search(query, candidates, ef, exact=mode=='exact'))
+            if mode in ('bm25','hybrid'):
+                rankings.append(self._sparse_search(query, candidates))
         hits = rrf(rankings) if len(rankings)>1 else rankings[0]
         if rerank and hits:
             hits = hits[:candidates]
