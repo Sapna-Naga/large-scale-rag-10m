@@ -1,0 +1,2 @@
+Validation in delivery environment: 6 unit tests passed; compileall passed.
+Live services and model downloads not tested.
