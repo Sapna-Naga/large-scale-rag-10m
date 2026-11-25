@@ -1,35 +1,58 @@
-from rag_system.core import Document, chunks, content_hash, unique_documents, metrics, percentile
+import json
+import subprocess
+import sys
+from rag_system.core import document, chunks, metrics, rrf, point_id, records
+from rag_system.console import DailyLog
 import pytest
 
 
-def test_invalid_document():
+def test_document():
+    assert document({'_id':'x','text':' hello '}) == ('x','','hello')
     with pytest.raises(ValueError):
-        Document.from_dict({"id": "a", "text": " "})
+        document({'id':'x','text':''})
 
 
-def test_chunks_preserve_offsets():
-    doc = Document("a", "one two three four")
-    tokenizer = lambda *a, **kw: {"offset_mapping": [(0,3),(4,7),(8,13),(14,18)]}
-    result = list(chunks(doc, tokenizer, 3, 1))
-    assert [r["text"] for r in result] == ["one two three", "three four"]
-    assert result == list(chunks(doc, tokenizer, 3, 1))
+def test_chunk_offsets():
+    def tokenizer(text, **kwargs):
+        return {'offset_mapping':[(i,i+1) for i in range(len(text))]}
+    assert list(chunks('abcde',tokenizer,3,1)) == [('abc',0,3),('cde',2,5)]
 
 
 def test_metrics():
-    result = metrics(["x", "a", "a"], {"a": 1, "b": 1}, 3)
-    assert result["recall"] == .5
-    assert result["precision"] == 1/3
-    assert result["mrr"] == .5
-    assert result["hit_rate"] == 1
-    assert metrics(["a", "b"], {"a": 2, "b": 1}, 2)["ndcg"] == 1
+    m=metrics(['a','a','b'],{'b':1},2)
+    assert m['recall']==1 and m['precision']==.5 and m['mrr']==.5
+    assert metrics(['z'],{'a':1},1)['ndcg']==0
 
 
-def test_unique_and_percentile():
-    assert unique_documents([{"doc_id":"a"}, {"doc_id":"a"}, {"doc_id":"b"}], 2) == ["a","b"]
-    assert percentile([1, 3], 50) == 2
-    assert percentile([], 95) is None
+def test_rrf():
+    a,b,c=[{'point_id':x} for x in 'abc']
+    assert rrf([[a,b],[c,b]])[0]['point_id']=='b'
+    assert point_id('a',1)==point_id('a',1)!=point_id('a',2)
 
 
-def test_hash():
-    assert content_hash(Document("a", "hello")) == content_hash(Document("b", "hello"))
-    assert content_hash(Document("a", "hello")) != content_hash(Document("a", "world"))
+def test_records(tmp_path):
+    p=tmp_path/'input.jsonl'
+    p.write_text(json.dumps({'id':'x'})+'\n')
+    assert list(records(p))==[{'id':'x'}]
+    p.write_text('bad')
+    with pytest.raises(ValueError):
+        list(records(p))
+
+
+def test_daily_append(tmp_path):
+    log=DailyLog(tmp_path)
+    log.write('INPUT','first')
+    log.write('OUTPUT','second')
+    files=list(tmp_path.glob('*.log'))
+    assert len(files)==1
+    content=files[0].read_text()
+    assert 'first' in content and 'second' in content and '+05:30' in content
+
+
+def test_console_subprocess(tmp_path):
+    cmd=[sys.executable,'-m','rag_system.console','--log-dir',str(tmp_path),'--',sys.executable,'-c','import sys; print(input()); print("error stream",file=sys.stderr); sys.exit(3)']
+    result=subprocess.run(cmd,input='hello\n',text=True,capture_output=True,timeout=15)
+    assert result.returncode==3
+    assert 'hello' in result.stdout and 'error stream' in result.stdout
+    log=next(tmp_path.glob('*.log')).read_text()
+    assert '[INPUT] hello' in log and '[EXIT] 3' in log
