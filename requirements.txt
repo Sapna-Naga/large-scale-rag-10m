@@ -1,8 +1,33 @@
+# qdrant-client==1.14.2
+# fastembed==0.7.1
+# sentence-transformers==4.1.0
+# transformers==4.51.3
+# httpx==0.28.1
+# fastapi==0.115.12
+# uvicorn==0.34.2
+# pytest==8.3.5
+# datasets
+
+
+# Vector database
 qdrant-client==1.14.2
+
+# Dense and sparse embeddings
 fastembed==0.7.1
 sentence-transformers==4.1.0
 transformers==4.51.3
+
+# Dataset acquisition
+datasets==3.6.0
+huggingface-hub==0.36.2
+tokenizers==0.21.4
+
+# HTTP communication
 httpx==0.28.1
+
+# REST API
 fastapi==0.115.12
 uvicorn==0.34.2
+
+# Automated testing
 pytest==8.3.5

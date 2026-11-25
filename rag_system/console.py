@@ -32,8 +32,17 @@ def main():
     command = args.command
     if command and command[0] == '--':
         command = command[1:]
+    # if not command:
+    #     parser.error('Provide a command after --')
+    # log = DailyLog(args.log_dir)
     if not command:
         parser.error('Provide a command after --')
+
+    # Use the same Python interpreter that runs this logging script.
+    # This prevents Windows from launching the global Python installation.
+    if command[0].lower() in ("python", "python.exe", "python3"):
+        command[0] = sys.executable
+
     log = DailyLog(args.log_dir)
     log.write('COMMAND', repr(command))
     env = dict(os.environ, PYTHONUNBUFFERED='1', PYTHONIOENCODING='utf-8')
