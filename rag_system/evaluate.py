@@ -59,12 +59,13 @@ def load_cases(queries, qrels):
 
 def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
              candidates=100, ef=128, limit=None, warmup_query=None, *, parallel=False,
-             fusion='chunk', rrf_constant=60, dense_weight=1.0):
+             fusion='chunk', rrf_constant=60, dense_weight=1.0, rerank_depth=None):
     if not 1 <= k <= candidates <= 1000 or ef < 1:
         raise ValueError('Require 1 <= k <= candidates <= 1000 and ef >= 1')
     if limit is not None and limit < 1:
         raise ValueError('Evaluation limit must be positive')
-    validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight)
+    validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight,
+                    rerank_depth=rerank_depth, candidates=candidates)
     if parallel and mode != 'hybrid':
         raise ValueError('Parallel retrieval requires hybrid mode')
     cases, no_positive = load_cases(queries, qrels)
@@ -78,6 +79,9 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
     # Use the same retrieval options for warm-up and every measured query.
     options = dict(k=candidates, candidates=candidates, mode=mode, rerank=rerank, ef=ef, parallel=parallel,
                    fusion=fusion, rrf_constant=rrf_constant, dense_weight=dense_weight)
+    if rerank_depth is not None:
+        options['rerank_depth'] = rerank_depth
+    effective_depth = (rerank_depth if rerank_depth is not None else candidates) if rerank else 0
     # A separate, real training query can be supplied for held-out evaluation.
     warmup = cases[0][1] if warmup_query is None else warmup_query
     if not isinstance(warmup, str) or not warmup.strip():
@@ -99,6 +103,10 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
         details.append({
             'query_id': qid, 'latency_seconds': elapsed,
             'returned_chunks': len(hits), 'unique_documents_in_pool': len(ranking),
+            # The reranked prefix contains the same items before and after scoring.
+            'reranked_items': min(effective_depth, len(hits)),
+            'rerank_prefix_recall': (len(relevant.intersection(unique_documents(hits[:effective_depth])))
+                                     / len(relevant)) if rerank else None,
             'top_k_document_ids': ranking[:k],
             'returned_pool_document_ids': ranking,
             'first_relevant_rank_in_pool': next((i for i, doc in enumerate(ranking, 1) if doc in relevant), None),
@@ -123,6 +131,11 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
         'rrf_constant': rrf_constant if mode == 'hybrid' else None,
         'dense_weight': dense_weight if mode == 'hybrid' else None,
         'sparse_weight': 1.0 if mode == 'hybrid' else None,
+        'rerank_depth': effective_depth if rerank else None,
+        'rerank_unit': ('unique documents' if fusion == 'document' else 'chunks') if rerank else None,
+        'reranker_input': 'representative chunk text' if rerank and fusion == 'document' else ('chunk text' if rerank else None),
+        'mean_rerank_prefix_recall': statistics.mean(d['rerank_prefix_recall'] for d in details) if rerank else None,
+        'mean_reranked_items': statistics.mean(d['reranked_items'] for d in details),
         'candidate_unit': 'chunks per retrieval branch',
         'returned_pool_unit': 'unique documents' if fusion == 'document' else 'chunks',
         'queries': len(results), 'eligible_queries': total_cases,

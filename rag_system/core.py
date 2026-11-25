@@ -56,7 +56,8 @@ def chunks(text, tokenizer, size=256, overlap=32):
         start = end - overlap
 
 
-def validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight):
+def validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight, *,
+                    rerank_depth=None, candidates=None):
     """Keep experimental fusion settings explicit and valid."""
     if fusion not in ('chunk', 'document'):
         raise ValueError('Fusion must be chunk or document')
@@ -66,8 +67,16 @@ def validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight):
         raise ValueError('Dense weight must be finite and positive')
     if mode != 'hybrid' and (fusion != 'chunk' or rrf_constant != 60 or dense_weight != 1):
         raise ValueError('Custom fusion settings require hybrid mode')
-    if fusion == 'document' and rerank:
-        raise ValueError('Document fusion with reranking is not supported yet')
+    if rerank_depth is not None:
+        if not rerank:
+            raise ValueError('Rerank depth requires reranking')
+        if type(rerank_depth) is not int or rerank_depth < 1:
+            raise ValueError('Rerank depth must be a positive integer')
+        if candidates is not None and rerank_depth > candidates:
+            raise ValueError('Rerank depth cannot exceed candidate depth')
+    # Require explicit opt-in for reranking representative document chunks.
+    if fusion == 'document' and rerank and rerank_depth is None:
+        raise ValueError('Document fusion with reranking requires an explicit rerank depth')
 
 
 def rrf(rankings, constant=60, *, weights=None, fusion='chunk'):

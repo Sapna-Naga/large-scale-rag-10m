@@ -8,6 +8,8 @@ from .core import validate_fusion
 
 def add_fusion_options(parser):
     """Expose optional fusion experiments without changing existing defaults."""
+    parser.add_argument("--rerank-depth", type=int,
+                        help="Rerank only this many initial items; requires --rerank")
     parser.add_argument("--fusion", choices=["chunk", "document"], default="chunk")
     parser.add_argument("--rrf-constant", type=int, default=60)
     parser.add_argument("--dense-weight", type=float, default=1.0,
@@ -58,7 +60,8 @@ def main():
         p.error('--parallel requires --mode hybrid')
     if a.command in ('search', 'evaluate'):
         try:
-            validate_fusion(a.mode, a.rerank, a.fusion, a.rrf_constant, a.dense_weight)
+            validate_fusion(a.mode, a.rerank, a.fusion, a.rrf_constant, a.dense_weight,
+                            rerank_depth=a.rerank_depth, candidates=a.candidates)
         except ValueError as exc:
             p.error(str(exc))
     engine = Engine()
@@ -75,14 +78,16 @@ def main():
         result = {'deleted':a.id}
     elif a.command=='search':
         result = engine.search(a.query or input('Query: '),a.k,a.mode,a.candidates,a.rerank,a.ef,parallel=a.parallel,
-                               fusion=a.fusion, rrf_constant=a.rrf_constant, dense_weight=a.dense_weight)
+                               fusion=a.fusion, rrf_constant=a.rrf_constant, dense_weight=a.dense_weight,
+                               rerank_depth=a.rerank_depth)
     elif a.command=='ask':
         result = engine.answer(a.query or input('Question: '),a.k)
     elif a.command=='evaluate':
         from .evaluate import evaluate
         result = evaluate(engine,a.queries,a.qrels,a.output,a.k,a.mode,a.rerank,a.candidates,a.ef,
                           limit=a.limit, warmup_query=a.warmup_query, parallel=a.parallel,
-                               fusion=a.fusion, rrf_constant=a.rrf_constant, dense_weight=a.dense_weight)
+                               fusion=a.fusion, rrf_constant=a.rrf_constant, dense_weight=a.dense_weight,
+                               rerank_depth=a.rerank_depth)
     else:
         result = {'indexed_chunks':engine.db.count(engine.cfg.collection,exact=True).count}
     print(json.dumps(result, indent=2, ensure_ascii=False))

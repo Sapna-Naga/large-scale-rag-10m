@@ -1,5 +1,6 @@
 """Qdrant-backed dense and sparse retrieval, reranking and cited generation."""
 import json
+import math
 import os
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
@@ -82,12 +83,13 @@ class Engine:
         return [dict(p.payload, point_id=str(p.id), score=p.score) for p in result.points]
 
     def search(self, query, k=10, mode='hybrid', candidates=50, rerank=False, ef=128, *, parallel=False,
-               fusion='chunk', rrf_constant=60, dense_weight=1.0):
+               fusion='chunk', rrf_constant=60, dense_weight=1.0, rerank_depth=None):
         if not query.strip() or not 1 <= k <= candidates <= 1000:
             raise ValueError('Require nonempty query and 1 <= k <= candidates <= 1000')
         if mode not in ('dense','exact','bm25','hybrid'):
             raise ValueError('Unknown retrieval mode')
-        validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight)
+        validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight,
+                        rerank_depth=rerank_depth, candidates=candidates)
         if parallel and mode != 'hybrid':
             raise ValueError('Parallel retrieval requires hybrid mode')
         if parallel:
@@ -109,10 +111,27 @@ class Engine:
                 rankings.append(self._sparse_search(query, candidates))
         hits = (rrf(rankings, constant=rrf_constant, weights=[dense_weight, 1.0],
                     fusion=fusion) if len(rankings) > 1 else rankings[0])
+        # Limit the returned pool before reranking. With document fusion each
+        # item is one unique document represented by its selected evidence chunk.
+        hits = hits[:candidates]
         if rerank and hits:
-            hits = hits[:candidates]
-            scores = self.reranker.predict([(query, h['text']) for h in hits], show_progress_bar=False)
-            hits = sorted([dict(h, score=float(s)) for h,s in zip(hits,scores,strict=True)], key=lambda h:-h['score'])
+            depth = min(rerank_depth if rerank_depth is not None else candidates, len(hits))
+            prefix, tail = hits[:depth], hits[depth:]
+            # Score only the prefix; keep the original order of the remaining
+            # items. Cross-encoder scores and retrieval scores are not comparable.
+            scores = [float(s) for s in self.reranker.predict(
+                [(query, h['text']) for h in prefix], show_progress_bar=False)]
+            if len(scores) != len(prefix) or not all(math.isfinite(s) for s in scores):
+                raise ValueError('Reranker returned invalid scores')
+            if rerank_depth is None:
+                # Preserve the legacy output format when reranking the full pool.
+                ranked = [dict(h, score=s) for h, s in zip(prefix, scores, strict=True)]
+            else:
+                ranked = [dict(h, score=s, retrieval_score=h['score'], score_type='cross_encoder')
+                          for h, s in zip(prefix, scores, strict=True)]
+                tail = [dict(h, score_type='retrieval') for h in tail]
+            # Python's stable sort preserves the retrieval order for tied scores.
+            hits = sorted(ranked, key=lambda h: -h['score']) + tail
         return hits[:k]
 
     def answer(self, query, k=8):
