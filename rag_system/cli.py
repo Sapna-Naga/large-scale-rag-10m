@@ -70,7 +70,7 @@ def main():
     start = time.perf_counter()
     if a.command=='init':
         engine.initialize(a.quantize)
-        result = {'collection':engine.cfg.collection,'status':'created'}
+        result = {'collection':engine.cfg.collection,'status':'created', 'embedding_input':engine.cfg.embedding_input}
     elif a.command=='ingest':
         from .ingest import ingest
         result = ingest(engine,a.source,a.state,a.limit)

@@ -12,7 +12,7 @@ import tempfile
 from contextlib import closing
 from pathlib import Path
 
-from .config import Config
+from .config import Config, index_signature
 from .core import point_id
 
 OLD_URL = 'http://localhost:6333'
@@ -21,8 +21,7 @@ NEW_URL = 'http://127.0.0.1:6333'
 
 def signature(cfg, url):
     # Match the signature used by both ingestion and document deletion.
-    return json.dumps([url, cfg.collection, cfg.embedding, cfg.revision,
-                       cfg.chunk_size, cfg.overlap])
+    return index_signature(cfg, url)
 
 
 def fingerprint(client, collection, expected):

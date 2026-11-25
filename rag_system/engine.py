@@ -59,9 +59,20 @@ class Engine:
             yield {'doc_id': doc_id, 'title': title, 'text': part, 'start': start, 'end': end, 'chunk_no': i}
 
     def upsert(self, rows):
-        # Keep title and text within the model limit; the full source chunk remains in payload.
+        # Keep the source chunks and BM25 input exactly as before. Only the
+        # dense document encoder receives the title in the experimental mode.
         texts = [row['text'] for row in rows]
-        dense = self.dense.encode(texts, batch_size=self.cfg.batch, normalize_embeddings=True, show_progress_bar=False)
+        dense_texts = texts
+        if self.cfg.embedding_input == 'title_chunk':
+            dense_texts = [self._rerank_text(row, 'title_chunk') for row in rows]
+            # Check the combined text with the real embedding tokenizer. Fail
+            # instead of silently dropping evidence or changing chunk boundaries.
+            token_ids = self.dense.tokenizer(dense_texts, add_special_tokens=True,
+                                             truncation=False, verbose=False)['input_ids']
+            for row, ids in zip(rows, token_ids, strict=True):
+                if len(ids) > self.dense.max_seq_length:
+                    raise ValueError(f"Title + chunk exceeds embedding token limit: {row['doc_id']} chunk {row['chunk_no']}")
+        dense = self.dense.encode(dense_texts, batch_size=self.cfg.batch, normalize_embeddings=True, show_progress_bar=False)
         sparse = list(self.sparse.embed(texts, batch_size=self.cfg.batch))
         points = [self.m.PointStruct(id=point_id(row['doc_id'], row['chunk_no']),
                   vector={'dense': d.tolist(), 'bm25': self.m.SparseVector(indices=s.indices.tolist(), values=s.values.tolist())}, payload=row)

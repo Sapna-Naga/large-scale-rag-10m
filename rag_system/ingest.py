@@ -3,6 +3,7 @@ import json
 import sqlite3
 from pathlib import Path
 from .core import records, document, digest
+from .config import index_signature
 
 
 def ingest(engine, source, state, limit=None):
@@ -14,10 +15,15 @@ def ingest(engine, source, state, limit=None):
         db.execute('CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)')
         db.execute('CREATE TABLE IF NOT EXISTS docs (id TEXT PRIMARY KEY, hash TEXT NOT NULL, chunks INTEGER NOT NULL, pending INTEGER NOT NULL)')
         db.execute('CREATE INDEX IF NOT EXISTS docs_hash ON docs(hash)')
-        signature = json.dumps([engine.cfg.url, engine.cfg.collection, engine.cfg.embedding, engine.cfg.revision, engine.cfg.chunk_size, engine.cfg.overlap])
+        signature = index_signature(engine.cfg)
         previous = db.execute("SELECT value FROM settings WHERE key='index'").fetchone()
         if previous and previous[0] != signature:
             raise ValueError('Checkpoint belongs to a different index configuration')
+        # A new title-aware checkpoint must start with an empty collection.
+        # This avoids mixing vectors or silently adopting a lost checkpoint.
+        if not previous and getattr(engine.cfg, 'embedding_input', 'chunk') == 'title_chunk':
+            if engine.db.count(engine.cfg.collection, exact=True).count != 0:
+                raise ValueError('Title-aware collection is not empty; use its original checkpoint')
         db.execute("INSERT OR IGNORE INTO settings VALUES ('index', ?)", (signature,))
         db.commit()
         stats = dict(read=0, indexed=0, unchanged=0, duplicate=0, chunks=0)
@@ -82,7 +88,7 @@ def ingest(engine, source, state, limit=None):
 def delete_document(engine, state, doc_id):
     # Keep the checkpoint until remote deletion succeeds; retry after a failure.
     with sqlite3.connect(state) as db:
-        signature = json.dumps([engine.cfg.url, engine.cfg.collection, engine.cfg.embedding, engine.cfg.revision, engine.cfg.chunk_size, engine.cfg.overlap])
+        signature = index_signature(engine.cfg)
         if db.execute("SELECT value FROM settings WHERE key='index'").fetchone() != (signature,):
             raise ValueError('Checkpoint belongs to a different index configuration')
         db.execute('UPDATE docs SET pending=1 WHERE id=?', (doc_id,))
