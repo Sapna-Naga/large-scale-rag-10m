@@ -8,7 +8,7 @@ import statistics
 import time
 from pathlib import Path
 from urllib.parse import urlsplit
-from .core import records, metrics, unique_documents
+from .core import records, metrics, unique_documents, validate_fusion
 
 
 def file_hash(path):
@@ -58,11 +58,13 @@ def load_cases(queries, qrels):
 
 
 def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
-             candidates=100, ef=128, limit=None, warmup_query=None, *, parallel=False):
+             candidates=100, ef=128, limit=None, warmup_query=None, *, parallel=False,
+             fusion='chunk', rrf_constant=60, dense_weight=1.0):
     if not 1 <= k <= candidates <= 1000 or ef < 1:
         raise ValueError('Require 1 <= k <= candidates <= 1000 and ef >= 1')
     if limit is not None and limit < 1:
         raise ValueError('Evaluation limit must be positive')
+    validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight)
     if parallel and mode != 'hybrid':
         raise ValueError('Parallel retrieval requires hybrid mode')
     cases, no_positive = load_cases(queries, qrels)
@@ -74,7 +76,8 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
     if points_before == 0:
         raise ValueError('Cannot evaluate an empty collection')
     # Use the same retrieval options for warm-up and every measured query.
-    options = dict(k=candidates, candidates=candidates, mode=mode, rerank=rerank, ef=ef, parallel=parallel)
+    options = dict(k=candidates, candidates=candidates, mode=mode, rerank=rerank, ef=ef, parallel=parallel,
+                   fusion=fusion, rrf_constant=rrf_constant, dense_weight=dense_weight)
     # A separate, real training query can be supplied for held-out evaluation.
     warmup = cases[0][1] if warmup_query is None else warmup_query
     if not isinstance(warmup, str) or not warmup.strip():
@@ -116,6 +119,12 @@ def evaluate(engine, queries, qrels, output, k=10, mode='hybrid', rerank=False,
     safe_endpoint = f'{endpoint.scheme}://{host}' + (f':{endpoint.port}' if endpoint.port else '')
     report = {
         'mode': mode, 'parallel': parallel, 'rerank': rerank, 'k': k, 'candidates': candidates, 'ef': ef,
+        'fusion': fusion if mode == 'hybrid' else None,
+        'rrf_constant': rrf_constant if mode == 'hybrid' else None,
+        'dense_weight': dense_weight if mode == 'hybrid' else None,
+        'sparse_weight': 1.0 if mode == 'hybrid' else None,
+        'candidate_unit': 'chunks per retrieval branch',
+        'returned_pool_unit': 'unique documents' if fusion == 'document' else 'chunks',
         'queries': len(results), 'eligible_queries': total_cases,
         'queries_without_positive_labels': no_positive,
         'query_selection': 'first eligible queries in file order' if limit is not None else 'all eligible queries',

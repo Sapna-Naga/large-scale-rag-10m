@@ -56,14 +56,53 @@ def chunks(text, tokenizer, size=256, overlap=32):
         start = end - overlap
 
 
-def rrf(rankings, constant=60):
-    scores, items = {}, {}
-    for ranking in rankings:
-        for rank, item in enumerate(ranking, 1):
-            key = item['point_id']
-            items[key] = item
-            scores[key] = scores.get(key, 0) + 1 / (constant + rank)
-    return [dict(items[key], score=scores[key]) for key in sorted(scores, key=lambda k: (-scores[k], k))]
+def validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight):
+    """Keep experimental fusion settings explicit and valid."""
+    if fusion not in ('chunk', 'document'):
+        raise ValueError('Fusion must be chunk or document')
+    if type(rrf_constant) is not int or rrf_constant < 1:
+        raise ValueError('RRF constant must be a positive integer')
+    if not math.isfinite(dense_weight) or dense_weight <= 0:
+        raise ValueError('Dense weight must be finite and positive')
+    if mode != 'hybrid' and (fusion != 'chunk' or rrf_constant != 60 or dense_weight != 1):
+        raise ValueError('Custom fusion settings require hybrid mode')
+    if fusion == 'document' and rerank:
+        raise ValueError('Document fusion with reranking is not supported yet')
+
+
+def rrf(rankings, constant=60, *, weights=None, fusion='chunk'):
+    """Fuse ranked chunks or unique documents using weighted reciprocal ranks.
+
+    Document fusion uses the first chunk of each document in each branch.
+    Keep a representative evidence chunk from the strongest contribution.
+    Chunk fusion preserves the original point-level behavior by default.
+    """
+    if type(constant) is not int or constant < 1:
+        raise ValueError('RRF constant must be a positive integer')
+    if fusion not in ('chunk', 'document'):
+        raise ValueError('Fusion must be chunk or document')
+    if weights is None:
+        weights = [1.0] * len(rankings)
+    if len(weights) != len(rankings) or any(not math.isfinite(w) or w <= 0 for w in weights):
+        raise ValueError('Provide one finite positive weight per ranking')
+    scores, items, best = {}, {}, {}
+    for ranking, weight in zip(rankings, weights, strict=True):
+        seen = set()
+        for original_rank, item in enumerate(ranking, 1):
+            key = item['doc_id'] if fusion == 'document' else item['point_id']
+            # A document contributes only once per retrieval branch.
+            if fusion == 'document' and key in seen:
+                continue
+            seen.add(key)
+            rank = len(seen) if fusion == 'document' else original_rank
+            contribution = weight / (constant + rank)
+            scores[key] = scores.get(key, 0) + contribution
+            if fusion == 'chunk' or contribution > best.get(key, -1):
+                items[key] = item
+                best[key] = contribution
+    # Resolve score ties deterministically by the point or document ID.
+    return [dict(items[key], score=scores[key])
+            for key in sorted(scores, key=lambda k: (-scores[k], k))]
 
 
 def unique_documents(hits):

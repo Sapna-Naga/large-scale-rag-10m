@@ -4,7 +4,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from .config import Config
-from .core import chunks, point_id, rrf
+from .core import chunks, point_id, rrf, validate_fusion
 
 class Engine:
     def __init__(self, config=None):
@@ -81,11 +81,13 @@ class Engine:
         result = self.db.query_points(self.cfg.collection, query=m.SparseVector(indices=vector.indices.tolist(), values=vector.values.tolist()), using='bm25', limit=candidates, with_payload=True)
         return [dict(p.payload, point_id=str(p.id), score=p.score) for p in result.points]
 
-    def search(self, query, k=10, mode='hybrid', candidates=50, rerank=False, ef=128, *, parallel=False):
+    def search(self, query, k=10, mode='hybrid', candidates=50, rerank=False, ef=128, *, parallel=False,
+               fusion='chunk', rrf_constant=60, dense_weight=1.0):
         if not query.strip() or not 1 <= k <= candidates <= 1000:
             raise ValueError('Require nonempty query and 1 <= k <= candidates <= 1000')
         if mode not in ('dense','exact','bm25','hybrid'):
             raise ValueError('Unknown retrieval mode')
+        validate_fusion(mode, rerank, fusion, rrf_constant, dense_weight)
         if parallel and mode != 'hybrid':
             raise ValueError('Parallel retrieval requires hybrid mode')
         if parallel:
@@ -105,7 +107,8 @@ class Engine:
                 rankings.append(self._dense_search(query, candidates, ef, exact=mode=='exact'))
             if mode in ('bm25','hybrid'):
                 rankings.append(self._sparse_search(query, candidates))
-        hits = rrf(rankings) if len(rankings)>1 else rankings[0]
+        hits = (rrf(rankings, constant=rrf_constant, weights=[dense_weight, 1.0],
+                    fusion=fusion) if len(rankings) > 1 else rankings[0])
         if rerank and hits:
             hits = hits[:candidates]
             scores = self.reranker.predict([(query, h['text']) for h in hits], show_progress_bar=False)

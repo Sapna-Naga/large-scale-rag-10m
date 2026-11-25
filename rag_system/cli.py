@@ -3,6 +3,15 @@ import argparse
 import json
 import time
 from .engine import Engine
+from .core import validate_fusion
+
+
+def add_fusion_options(parser):
+    """Expose optional fusion experiments without changing existing defaults."""
+    parser.add_argument("--fusion", choices=["chunk", "document"], default="chunk")
+    parser.add_argument("--rrf-constant", type=int, default=60)
+    parser.add_argument("--dense-weight", type=float, default=1.0,
+                        help="Dense rank contribution relative to sparse weight 1.0")
 
 
 def main():
@@ -27,6 +36,7 @@ def main():
             q.add_argument('--parallel', action='store_true', help='Run both hybrid retrieval branches concurrently')
             q.add_argument('--candidates', type=int, default=50)
             q.add_argument('--ef', type=int, default=128)
+            add_fusion_options(q)
     ev = sub.add_parser('evaluate')
     ev.add_argument('queries')
     ev.add_argument('qrels')
@@ -37,6 +47,7 @@ def main():
     ev.add_argument('--k', type=int, default=10)
     ev.add_argument('--candidates', type=int, default=100)
     ev.add_argument('--ef', type=int, default=128)
+    add_fusion_options(ev)
     ev.add_argument('--limit', type=int, help='Evaluate only the first N eligible queries (development only)')
     ev.add_argument('--warmup-query', help='Separate real query for model and retrieval warm-up')
     sub.add_parser('count')
@@ -45,6 +56,11 @@ def main():
         p.error('--limit must be positive')
     if getattr(a, 'parallel', False) and a.mode != 'hybrid':
         p.error('--parallel requires --mode hybrid')
+    if a.command in ('search', 'evaluate'):
+        try:
+            validate_fusion(a.mode, a.rerank, a.fusion, a.rrf_constant, a.dense_weight)
+        except ValueError as exc:
+            p.error(str(exc))
     engine = Engine()
     start = time.perf_counter()
     if a.command=='init':
@@ -58,13 +74,15 @@ def main():
         delete_document(engine,a.state,a.id)
         result = {'deleted':a.id}
     elif a.command=='search':
-        result = engine.search(a.query or input('Query: '),a.k,a.mode,a.candidates,a.rerank,a.ef,parallel=a.parallel)
+        result = engine.search(a.query or input('Query: '),a.k,a.mode,a.candidates,a.rerank,a.ef,parallel=a.parallel,
+                               fusion=a.fusion, rrf_constant=a.rrf_constant, dense_weight=a.dense_weight)
     elif a.command=='ask':
         result = engine.answer(a.query or input('Question: '),a.k)
     elif a.command=='evaluate':
         from .evaluate import evaluate
         result = evaluate(engine,a.queries,a.qrels,a.output,a.k,a.mode,a.rerank,a.candidates,a.ef,
-                          limit=a.limit, warmup_query=a.warmup_query, parallel=a.parallel)
+                          limit=a.limit, warmup_query=a.warmup_query, parallel=a.parallel,
+                               fusion=a.fusion, rrf_constant=a.rrf_constant, dense_weight=a.dense_weight)
     else:
         result = {'indexed_chunks':engine.db.count(engine.cfg.collection,exact=True).count}
     print(json.dumps(result, indent=2, ensure_ascii=False))
