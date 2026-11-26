@@ -117,7 +117,18 @@ def summarize(results, elapsed):
                                       for p in (50, 95, 99)} if latencies else {}}
 
 
-def run(client, profile, cases, warmup, workers, rounds):
+def cache_snapshot(client):
+    response = client.get('/cache')
+    response.raise_for_status()
+    data = response.json()
+    if type(data.get('enabled')) is not bool or any(
+            type(data.get(k)) is not int or data[k] < 0
+            for k in ('hits', 'misses', 'evictions', 'expirations', 'skipped', 'entries', 'encoded_bytes')):
+        raise ValueError('Invalid cache statistics')
+    return data
+
+
+def run(client, profile, cases, warmup, workers, rounds, *, track_cache=False):
     runs = []
     k = profile['configuration']['k']
     for round_no in range(1, rounds + 1):
@@ -125,9 +136,11 @@ def run(client, profile, cases, warmup, workers, rounds):
         order = workers if round_no % 2 else list(reversed(workers))
         for n in order:
             print(f'Round {round_no}: {n} concurrent clients', flush=True)
+            cache_before = cache_snapshot(client) if track_cache else None
             warm = [request(client, case, k) for case in warmup]
             if any(r['error'] for r in warm):
                 raise RuntimeError('Warm-up request failed; check API before benchmarking')
+            cache_after_warmup = cache_snapshot(client) if track_cache else None
             started = time.perf_counter()
             with ThreadPoolExecutor(max_workers=n) as pool:
                 results = list(pool.map(lambda case: request(client, case, k), cases))
@@ -135,6 +148,15 @@ def run(client, profile, cases, warmup, workers, rounds):
             summary = summarize(results, elapsed)
             runs.append({'round': round_no, 'workers': n, 'warmup': warm,
                          **summary, 'per_request': results})
+            if track_cache:
+                cache_after = cache_snapshot(client)
+                counters = ('hits', 'misses', 'evictions', 'expirations', 'skipped')
+                delta = {key: cache_after[key] - cache_after_warmup[key] for key in counters}
+                if any(v < 0 for v in delta.values()) or len({cache_before['enabled'], cache_after_warmup['enabled'], cache_after['enabled']}) != 1:
+                    raise RuntimeError('Cache was reset or configuration changed during the run')
+                runs[-1]['cache'] = {'before_warmup': cache_before, 'after_warmup': cache_after_warmup,
+                                     'after_measurement': cache_after, 'measured_delta': delta}
+                print('CACHE_MEASURED_DELTA', json.dumps(delta), flush=True)
             print(json.dumps(summary, indent=2), flush=True)
     return runs
 
@@ -149,6 +171,7 @@ def main():
     p.add_argument('--rounds', type=int, default=2)
     p.add_argument('--seed', type=int, default=42)
     p.add_argument('--output', required=True)
+    p.add_argument('--cache-stats', action='store_true', help='Record cache counters outside measured intervals')
     a = p.parse_args()
     if not 1 <= a.rounds <= 10 or any(not 1 <= n <= 16 for n in a.workers) or len(set(a.workers)) != len(a.workers):
         p.error('Use 1–10 rounds and unique worker counts in 1–16')
@@ -163,7 +186,7 @@ def main():
                       trust_env=False, limits=httpx.Limits(max_connections=max(a.workers),
                       max_keepalive_connections=max(a.workers))) as client:
         before = readiness(client, profile)
-        runs = run(client, profile, cases, warmup, a.workers, a.rounds)
+        runs = run(client, profile, cases, warmup, a.workers, a.rounds, track_cache=a.cache_stats)
         after = readiness(client, profile)
     report = {'timestamp_ist': timestamp, 'profile_sha256': sha256(a.profile),
               'reference_sha256': sha256(a.reference), 'queries_sha256': sha256(a.queries),

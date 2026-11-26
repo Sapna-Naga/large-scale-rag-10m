@@ -9,8 +9,9 @@ from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 from .engine import Engine
 from .runtime_profile import active_profile, profile_options
+from .result_cache import cache_key, from_environment
 
-app = FastAPI(title='Large-scale RAG', version='0.2.0')
+app = FastAPI(title='Large-scale RAG', version='0.3.0')
 lock = Lock()
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,11 @@ def engine():
     # Call under the shared lock so simultaneous first requests cannot load
     # multiple copies of the embedding models.
     return Engine()
+
+
+@lru_cache(maxsize=1)
+def search_cache():
+    return from_environment()
 
 
 class Query(BaseModel):
@@ -78,12 +84,38 @@ def health():
             raise unavailable('Index readiness', exc) from None
 
 
+@app.get('/cache')
+def cache_status():
+    # Local diagnostic only; no query text or cached passages are returned.
+    with lock:
+        try:
+            return search_cache().stats()
+        except Exception as exc:
+            raise unavailable('Cache status', exc) from None
+
+
 @app.post('/search')
 def search(request: Query):
     # Keep the existing ranked passage response and serialize model access.
     with lock:
         try:
-            return engine().runtime_search(request.query, request.k)
+            e = engine()
+            cache = search_cache()
+            if not cache.enabled:
+                return e.runtime_search(request.query, request.k)
+            # Opt-in only for an immutable, frozen index. TTL is not a substitute
+            # for cache invalidation when documents or model weights change.
+            profile = active_profile(e.cfg)
+            if profile is None:
+                raise ValueError('Search caching requires a frozen retrieval profile')
+            k = profile_options(profile, request.k)['k']
+            key = cache_key(profile, request.query, k)
+            cached = cache.get(key)
+            if cached is not None:
+                return cached
+            result = e.runtime_search(request.query, request.k)
+            cache.put(key, result)
+            return result
         except Exception as exc:
             raise unavailable('Search', exc) from None
 
