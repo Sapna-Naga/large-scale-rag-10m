@@ -1,0 +1,63 @@
+{
+  "profile": "scifact-retrieval-v1",
+  "status": "frozen before held-out retrieval evaluation",
+  "selection_rule": {
+    "max_absolute_ndcg_loss": 0.01,
+    "max_absolute_recall_loss": 0.01,
+    "tie_break": "smallest stored point count"
+  },
+  "configuration": {
+    "collection": "rag_documents_v1_c384_o32",
+    "chunk_size": 384,
+    "chunk_overlap": 32,
+    "embedding": "BAAI/bge-small-en-v1.5",
+    "embedding_revision": null,
+    "embedding_input": "chunk",
+    "sparse_embedding_input": "chunk",
+    "device": "cpu",
+    "qdrant_endpoint": "http://127.0.0.1:6333",
+    "mode": "hybrid",
+    "parallel": true,
+    "fusion": "document",
+    "rrf_constant": 10,
+    "dense_weight": 4.0,
+    "sparse_weight": 1.0,
+    "k": 10,
+    "candidates": 200,
+    "ef": 256,
+    "rerank": false,
+    "indexed_chunks": 6547,
+    "warmup_query": "A T helper 2 cell (Th2) environment impedes disease development in patients with systemic lupus erythematosus (SLE)."
+  },
+  "training_report": "benchmarks/scifact/full_train/train809_c384_o32_hybrid.json",
+  "training_report_sha256": "07780108dc0327b9854b6b0bde587c100e4306ae9fb608a333b4f7423a55a6be",
+  "training_metrics": {
+    "recall": 0.8695096827358879,
+    "precision": 0.09826946847960445,
+    "mrr": 0.7030666902113132,
+    "ndcg": 0.740009998470303,
+    "hit_rate": 0.8788627935723115
+  },
+  "training_pool_recall": 0.9861969509682735,
+  "dataset_sha256": {
+    "corpus.jsonl": "a393a49ff5c447468f1dff507d351689f3bd0508f172d19f0994f119634b9852",
+    "queries.jsonl": "830ccf116893a2708db9c3bc6857ea10dd34c81bef7bc88c369fcc33b37b81b3",
+    "qrels/train.tsv": "a53f2114831916c096b6c37d9e54da68cef4efdcdbd5ed46533601af972acf1d",
+    "qrels/test.tsv": "0864bb985e0ca2367ba217977e72004d549054b2b06666ed9d4825ac7c21284c"
+  },
+  "held_out_plan": {
+    "queries": 300,
+    "qrels": "data/scifact/qrels/test.tsv",
+    "primary": "c384_o32_hybrid",
+    "comparisons": [
+      "c384_o32_bm25",
+      "c384_o32_dense",
+      "c256_o32_hybrid"
+    ],
+    "no_tuning_on_test": true
+  },
+  "limitations": [
+    "Embedding revision not pinned; preserve existing cached model and index.",
+    "This profile records retrieval settings; it does not automatically alter runtime API or answer defaults."
+  ]
+}
