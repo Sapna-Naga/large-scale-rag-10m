@@ -33,7 +33,7 @@ def main():
     for name in ('search','ask'):
         q = sub.add_parser(name)
         q.add_argument('query', nargs='?')
-        q.add_argument('--k', type=int, default=8)
+        q.add_argument('--k', type=int, default=8 if name=='search' else None)
         if name=='search':
             q.add_argument('--mode', choices=['dense','exact','bm25','hybrid'], default='hybrid')
             q.add_argument('--rerank', action='store_true')

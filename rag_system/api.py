@@ -14,7 +14,7 @@ def engine():
 
 class Query(BaseModel):
     query: str = Field(min_length=1,max_length=4000)
-    k: int = Field(default=8,ge=1,le=50)
+    k: int | None = Field(default=None,ge=1,le=50)
 
 @app.get('/health')
 def health():
@@ -26,7 +26,7 @@ def health():
 def search(request: Query):
     # Serialize model access initially; benchmark before raising concurrency.
     with lock:
-        return engine().search(request.query,request.k)
+        return engine().runtime_search(request.query,request.k)
 
 @app.post('/ask')
 def ask(request: Query):

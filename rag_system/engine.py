@@ -154,9 +154,19 @@ class Engine:
             hits = sorted(ranked, key=lambda h: -h['score']) + tail
         return hits[:k]
 
-    def answer(self, query, k=8):
+    def runtime_search(self, query, k=None, *, for_answer=False):
+        # Explicitly opt in to the evaluated profile. Benchmark search() is
+        # unchanged, and a mismatched collection fails rather than falling back.
+        from .runtime_profile import active_profile, profile_options
+        profile = active_profile(self.cfg)
+        if profile is not None:
+            return self.search(query, **profile_options(profile, k))
+        k = 8 if k is None else k
+        return self.search(query, k=k, candidates=max(50,k), rerank=for_answer)
+
+    def answer(self, query, k=None):
         import httpx
-        hits = self.search(query, k=k, candidates=max(50,k), rerank=True)
+        hits = self.runtime_search(query, k, for_answer=True)
         sources, blocks = [], []
         for hit in hits:
             # Count the actual formatted evidence with the generator tokenizer.
