@@ -1,0 +1,505 @@
+{
+  "source_info": {
+    "status": "green",
+    "optimizer_status": "ok",
+    "indexed_vectors_count": 6547,
+    "points_count": 6547,
+    "segments_count": 8,
+    "config": {
+      "params": {
+        "vectors": {
+          "dense": {
+            "size": 384,
+            "distance": "Cosine",
+            "on_disk": true
+          }
+        },
+        "shard_number": 1,
+        "replication_factor": 1,
+        "write_consistency_factor": 1,
+        "on_disk_payload": true,
+        "sparse_vectors": {
+          "bm25": {
+            "index": {
+              "on_disk": true
+            },
+            "modifier": "idf"
+          }
+        }
+      },
+      "hnsw_config": {
+        "m": 16,
+        "ef_construct": 100,
+        "full_scan_threshold": 10000,
+        "max_indexing_threads": 0,
+        "on_disk": true
+      },
+      "optimizer_config": {
+        "deleted_threshold": 0.2,
+        "vacuum_min_vector_number": 1000,
+        "default_segment_number": 0,
+        "max_segment_size": null,
+        "memmap_threshold": null,
+        "indexing_threshold": 20000,
+        "flush_interval_sec": 5,
+        "max_optimization_threads": null
+      },
+      "wal_config": {
+        "wal_capacity_mb": 32,
+        "wal_segments_ahead": 0
+      },
+      "quantization_config": null,
+      "strict_mode_config": {
+        "enabled": false
+      }
+    },
+    "payload_schema": {
+      "doc_id": {
+        "data_type": "keyword",
+        "points": 6547
+      }
+    }
+  },
+  "action": "create",
+  "target_info": {
+    "status": "green",
+    "optimizer_status": "ok",
+    "indexed_vectors_count": 13094,
+    "points_count": 6547,
+    "segments_count": 2,
+    "config": {
+      "params": {
+        "vectors": {
+          "dense": {
+            "size": 384,
+            "distance": "Cosine",
+            "on_disk": true
+          }
+        },
+        "shard_number": 1,
+        "replication_factor": 1,
+        "write_consistency_factor": 1,
+        "on_disk_payload": true,
+        "sparse_vectors": {
+          "bm25": {
+            "index": {
+              "on_disk": true
+            },
+            "modifier": "idf"
+          }
+        }
+      },
+      "hnsw_config": {
+        "m": 16,
+        "ef_construct": 100,
+        "full_scan_threshold": 10,
+        "max_indexing_threads": 2,
+        "on_disk": true
+      },
+      "optimizer_config": {
+        "deleted_threshold": 0.2,
+        "vacuum_min_vector_number": 1000,
+        "default_segment_number": 2,
+        "max_segment_size": null,
+        "memmap_threshold": null,
+        "indexing_threshold": 128,
+        "flush_interval_sec": 5,
+        "max_optimization_threads": 1
+      },
+      "wal_config": {
+        "wal_capacity_mb": 32,
+        "wal_segments_ahead": 0
+      },
+      "quantization_config": null,
+      "strict_mode_config": {
+        "enabled": false
+      }
+    },
+    "payload_schema": {
+      "doc_id": {
+        "data_type": "keyword",
+        "points": 6547
+      }
+    }
+  },
+  "verified_points": 6547,
+  "probe": {
+    "collection": "rag_documents_v1_c384_o32_hnsw",
+    "query_point_id": "001c2d0a-f82d-514f-b24a-9d154d4408d5",
+    "requests": 5,
+    "before": {
+      "counts": {
+        "unfiltered_plain": 0,
+        "unfiltered_hnsw": 0,
+        "unfiltered_exact": 0
+      },
+      "segments": [
+        {
+          "info": {
+            "segment_type": "indexed",
+            "num_vectors": 0,
+            "num_points": 0,
+            "num_indexed_vectors": 0,
+            "num_deleted_vectors": 0,
+            "vectors_size_bytes": 0,
+            "payloads_size_bytes": 0,
+            "ram_usage_bytes": 0,
+            "disk_usage_bytes": 0,
+            "is_appendable": true,
+            "index_schema": {
+              "doc_id": {
+                "data_type": "keyword",
+                "points": 0
+              }
+            },
+            "vector_data": {
+              "bm25": {
+                "num_vectors": 0,
+                "num_indexed_vectors": 0,
+                "num_deleted_vectors": 0
+              },
+              "dense": {
+                "num_vectors": 0,
+                "num_indexed_vectors": 0,
+                "num_deleted_vectors": 0
+              }
+            }
+          },
+          "config": {
+            "vector_data": {
+              "dense": {
+                "size": 384,
+                "distance": "Cosine",
+                "storage_type": "ChunkedMmap",
+                "index": {
+                  "type": "plain",
+                  "options": {}
+                },
+                "quantization_config": null
+              }
+            },
+            "sparse_vector_data": {
+              "bm25": {
+                "index": {
+                  "full_scan_threshold": null,
+                  "index_type": "MutableRam"
+                },
+                "storage_type": "mmap"
+              }
+            },
+            "payload_storage_type": {
+              "type": "mmap"
+            }
+          },
+          "vector_index_searches": [
+            {
+              "index_name": "dense"
+            },
+            {
+              "index_name": "bm25"
+            }
+          ],
+          "payload_field_indices": [
+            {
+              "field_name": "doc_id",
+              "index_type": "mutable_map",
+              "points_values_count": 0,
+              "points_count": 0
+            },
+            {
+              "field_name": "doc_id",
+              "index_type": "mmap_null_index",
+              "points_values_count": 0,
+              "points_count": 0
+            }
+          ]
+        },
+        {
+          "info": {
+            "segment_type": "indexed",
+            "num_vectors": 13094,
+            "num_points": 6547,
+            "num_indexed_vectors": 13094,
+            "num_deleted_vectors": 0,
+            "vectors_size_bytes": 13166017,
+            "payloads_size_bytes": 6918912,
+            "ram_usage_bytes": 0,
+            "disk_usage_bytes": 0,
+            "is_appendable": false,
+            "index_schema": {
+              "doc_id": {
+                "data_type": "keyword",
+                "points": 6547
+              }
+            },
+            "vector_data": {
+              "bm25": {
+                "num_vectors": 6547,
+                "num_indexed_vectors": 6547,
+                "num_deleted_vectors": 0
+              },
+              "dense": {
+                "num_vectors": 6547,
+                "num_indexed_vectors": 6547,
+                "num_deleted_vectors": 0
+              }
+            }
+          },
+          "config": {
+            "vector_data": {
+              "dense": {
+                "size": 384,
+                "distance": "Cosine",
+                "storage_type": "Mmap",
+                "index": {
+                  "type": "hnsw",
+                  "options": {
+                    "m": 16,
+                    "ef_construct": 100,
+                    "full_scan_threshold": 10,
+                    "max_indexing_threads": 2,
+                    "on_disk": true
+                  }
+                },
+                "quantization_config": null
+              }
+            },
+            "sparse_vector_data": {
+              "bm25": {
+                "index": {
+                  "full_scan_threshold": null,
+                  "index_type": "Mmap"
+                },
+                "storage_type": "mmap"
+              }
+            },
+            "payload_storage_type": {
+              "type": "mmap"
+            }
+          },
+          "vector_index_searches": [
+            {
+              "index_name": "bm25"
+            },
+            {
+              "index_name": "dense"
+            }
+          ],
+          "payload_field_indices": [
+            {
+              "field_name": "doc_id",
+              "index_type": "immutable_map",
+              "points_values_count": 6547,
+              "points_count": 6547
+            },
+            {
+              "field_name": "doc_id",
+              "index_type": "mmap_null_index",
+              "points_values_count": 6547,
+              "points_count": 6547
+            }
+          ]
+        }
+      ],
+      "process_id": "17f07b4c-ae9d-4728-aa75-6e3d6bad5d29"
+    },
+    "after": {
+      "counts": {
+        "unfiltered_plain": 5,
+        "unfiltered_hnsw": 5,
+        "unfiltered_exact": 0
+      },
+      "segments": [
+        {
+          "info": {
+            "segment_type": "indexed",
+            "num_vectors": 0,
+            "num_points": 0,
+            "num_indexed_vectors": 0,
+            "num_deleted_vectors": 0,
+            "vectors_size_bytes": 0,
+            "payloads_size_bytes": 0,
+            "ram_usage_bytes": 0,
+            "disk_usage_bytes": 0,
+            "is_appendable": true,
+            "index_schema": {
+              "doc_id": {
+                "data_type": "keyword",
+                "points": 0
+              }
+            },
+            "vector_data": {
+              "bm25": {
+                "num_vectors": 0,
+                "num_indexed_vectors": 0,
+                "num_deleted_vectors": 0
+              },
+              "dense": {
+                "num_vectors": 0,
+                "num_indexed_vectors": 0,
+                "num_deleted_vectors": 0
+              }
+            }
+          },
+          "config": {
+            "vector_data": {
+              "dense": {
+                "size": 384,
+                "distance": "Cosine",
+                "storage_type": "ChunkedMmap",
+                "index": {
+                  "type": "plain",
+                  "options": {}
+                },
+                "quantization_config": null
+              }
+            },
+            "sparse_vector_data": {
+              "bm25": {
+                "index": {
+                  "full_scan_threshold": null,
+                  "index_type": "MutableRam"
+                },
+                "storage_type": "mmap"
+              }
+            },
+            "payload_storage_type": {
+              "type": "mmap"
+            }
+          },
+          "vector_index_searches": [
+            {
+              "index_name": "dense",
+              "unfiltered_plain": {
+                "count": 5,
+                "avg_duration_micros": 457.0833,
+                "min_duration_micros": 4.0,
+                "max_duration_micros": 994.0,
+                "total_duration_micros": 1015,
+                "last_responded": "2026-11-28T12:59:58.410Z"
+              }
+            },
+            {
+              "index_name": "bm25"
+            }
+          ],
+          "payload_field_indices": [
+            {
+              "field_name": "doc_id",
+              "index_type": "mutable_map",
+              "points_values_count": 0,
+              "points_count": 0
+            },
+            {
+              "field_name": "doc_id",
+              "index_type": "mmap_null_index",
+              "points_values_count": 0,
+              "points_count": 0
+            }
+          ]
+        },
+        {
+          "info": {
+            "segment_type": "indexed",
+            "num_vectors": 13094,
+            "num_points": 6547,
+            "num_indexed_vectors": 13094,
+            "num_deleted_vectors": 0,
+            "vectors_size_bytes": 13166017,
+            "payloads_size_bytes": 6918912,
+            "ram_usage_bytes": 0,
+            "disk_usage_bytes": 0,
+            "is_appendable": false,
+            "index_schema": {
+              "doc_id": {
+                "data_type": "keyword",
+                "points": 6547
+              }
+            },
+            "vector_data": {
+              "bm25": {
+                "num_vectors": 6547,
+                "num_indexed_vectors": 6547,
+                "num_deleted_vectors": 0
+              },
+              "dense": {
+                "num_vectors": 6547,
+                "num_indexed_vectors": 6547,
+                "num_deleted_vectors": 0
+              }
+            }
+          },
+          "config": {
+            "vector_data": {
+              "dense": {
+                "size": 384,
+                "distance": "Cosine",
+                "storage_type": "Mmap",
+                "index": {
+                  "type": "hnsw",
+                  "options": {
+                    "m": 16,
+                    "ef_construct": 100,
+                    "full_scan_threshold": 10,
+                    "max_indexing_threads": 2,
+                    "on_disk": true
+                  }
+                },
+                "quantization_config": null
+              }
+            },
+            "sparse_vector_data": {
+              "bm25": {
+                "index": {
+                  "full_scan_threshold": null,
+                  "index_type": "Mmap"
+                },
+                "storage_type": "mmap"
+              }
+            },
+            "payload_storage_type": {
+              "type": "mmap"
+            }
+          },
+          "vector_index_searches": [
+            {
+              "index_name": "bm25"
+            },
+            {
+              "index_name": "dense",
+              "unfiltered_hnsw": {
+                "count": 5,
+                "avg_duration_micros": 2925.7634,
+                "min_duration_micros": 457.0,
+                "max_duration_micros": 5817.0,
+                "total_duration_micros": 7837,
+                "last_responded": "2026-11-28T12:59:58.410Z"
+              }
+            }
+          ],
+          "payload_field_indices": [
+            {
+              "field_name": "doc_id",
+              "index_type": "immutable_map",
+              "points_values_count": 6547,
+              "points_count": 6547
+            },
+            {
+              "field_name": "doc_id",
+              "index_type": "mmap_null_index",
+              "points_values_count": 6547,
+              "points_count": 6547
+            }
+          ]
+        }
+      ],
+      "process_id": "17f07b4c-ae9d-4728-aa75-6e3d6bad5d29"
+    },
+    "counter_delta": {
+      "unfiltered_plain": 5,
+      "unfiltered_hnsw": 5,
+      "unfiltered_exact": 0
+    },
+    "hnsw_observed": true
+  }
+}
