@@ -11,12 +11,17 @@ import httpx
 SOURCE = 'rag_documents_v1_c384_o32'
 TARGET = 'rag_documents_v1_c384_o32_hnsw'
 EXPECTED = 6547
+# Qdrant v1.14.1 validates a minimum of 10 KB for this setting.
+FULL_SCAN_THRESHOLD_KB = 10
 BASE = 'http://127.0.0.1:6333'
 COUNTERS = ('unfiltered_plain', 'unfiltered_hnsw', 'unfiltered_exact')
 
 
 def request(client, method, path, **kwargs):
     response = client.request(method, path, **kwargs)
+    if response.is_error:
+        # Keep the server validation message in the daily console log.
+        print(f"QDRANT_HTTP_ERROR {method} {path} {response.status_code}: {response.text[:2000]}", flush=True)
     response.raise_for_status()
     body = response.json()
     if body['status'] != 'ok':
@@ -104,7 +109,7 @@ def create(client, source):
     request(client, 'PUT', f'/collections/{TARGET}', json={
         'vectors': params['vectors'], 'sparse_vectors': params['sparse_vectors'],
         'shard_number': 1, 'replication_factor': 1, 'on_disk_payload': True,
-        'hnsw_config': {'m': 16, 'ef_construct': 100, 'full_scan_threshold': 1,
+        'hnsw_config': {'m': 16, 'ef_construct': 100, 'full_scan_threshold': FULL_SCAN_THRESHOLD_KB,
                         'max_indexing_threads': 2, 'on_disk': True},
         'optimizers_config': {'indexing_threshold': 128, 'default_segment_number': 2,
                               'max_optimization_threads': 1},
@@ -205,6 +210,16 @@ def probe(client, name):
             'hnsw_observed': delta['unfiltered_hnsw'] > 0}
 
 
+def check_target_config(target):
+    # The verified configuration must match the one sent during creation.
+    config = target['config']
+    h = config['hnsw_config']
+    if (h['m'], h['ef_construct'], h['full_scan_threshold'], h['on_disk'],
+            config['optimizer_config']['indexing_threshold'], config['quantization_config']) != (
+            16, 100, FULL_SCAN_THRESHOLD_KB, True, 128, None):
+        raise RuntimeError('Experimental collection configuration mismatch')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=['baseline', 'create', 'verify'])
@@ -223,11 +238,7 @@ def main():
             if args.action == 'create':
                 create(client, source)
             target = wait_ready(client)
-            config = target['config']
-            h = config['hnsw_config']
-            if (h['m'], h['ef_construct'], h['full_scan_threshold'], h['on_disk'],
-                config['optimizer_config']['indexing_threshold'], config['quantization_config']) != (16, 100, 1, True, 128, None):
-                raise RuntimeError('Experimental collection configuration mismatch')
+            check_target_config(target)
             report['target_info'] = target
             report['verified_points'] = verify_copy(client)
             report['probe'] = probe(client, TARGET)

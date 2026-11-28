@@ -1,4 +1,5 @@
 import copy
+import json
 import pytest
 import httpx
 from rag_system import index_experiment as exp
@@ -96,3 +97,55 @@ def test_probe_requires_observed_search_operations(monkeypatch, plain, hnsw, exp
                 exp.probe(client, exp.SOURCE)
         else:
             assert exp.probe(client, exp.SOURCE)['hnsw_observed'] is expected
+
+
+
+def test_create_uses_supported_full_scan_threshold(monkeypatch):
+    # Inspect the actual JSON sent to Qdrant, not just the constant.
+    calls = []
+    def handler(r):
+        calls.append((r.method, r.url.path))
+        if r.method == 'GET':
+            result = {'collections': []}
+        else:
+            body = json.loads(r.content)
+            if r.url.path == f'/collections/{exp.TARGET}':
+                assert body['hnsw_config']['full_scan_threshold'] == 10
+                assert body['optimizers_config']['indexing_threshold'] == 128
+                assert body['hnsw_config']['m'] == 16
+                assert body['hnsw_config']['ef_construct'] == 100
+            else:
+                assert r.url.path == f'/collections/{exp.TARGET}/index'
+            result = True
+        return httpx.Response(200, json={'status': 'ok', 'result': result})
+    monkeypatch.setattr(exp, 'batches', lambda *args: iter([]))
+    source = {'config': {'params': {'vectors': {'dense': {'size': 384, 'distance': 'Cosine', 'on_disk': True}},
+                                     'sparse_vectors': {'bm25': {'index': {'on_disk': True}, 'modifier': 'idf'}}}}}
+    with httpx.Client(base_url=exp.BASE, transport=httpx.MockTransport(handler)) as client:
+        exp.create(client, source)
+    assert calls == [('GET', '/collections'), ('PUT', f'/collections/{exp.TARGET}'),
+                     ('PUT', f'/collections/{exp.TARGET}/index')]
+
+
+@pytest.mark.parametrize('threshold', [10, 1])
+def test_target_config_threshold(threshold):
+    target = {'config': {'hnsw_config': {'m': 16, 'ef_construct': 100,
+        'full_scan_threshold': threshold, 'on_disk': True},
+        'optimizer_config': {'indexing_threshold': 128}, 'quantization_config': None}}
+    if threshold == 10:
+        exp.check_target_config(target)
+    else:
+        with pytest.raises(RuntimeError, match='configuration mismatch'):
+            exp.check_target_config(target)
+
+
+def test_http_validation_error_logged(capsys):
+    def handler(r):
+        return httpx.Response(422, text='full_scan_threshold must be at least 10')
+    with httpx.Client(base_url=exp.BASE, transport=httpx.MockTransport(handler)) as client:
+        with pytest.raises(httpx.HTTPStatusError):
+            exp.request(client, 'PUT', f'/collections/{exp.TARGET}', json={})
+    output = capsys.readouterr().out
+    assert 'QDRANT_HTTP_ERROR' in output
+    assert '422' in output
+    assert 'full_scan_threshold must be at least 10' in output
